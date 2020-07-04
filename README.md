@@ -18,3 +18,4 @@ GFL's Server Ads plugin that prints global, game-specific, server-specific, and 
 
 ## Credits
 * [Christian Deacon](https://www.linkedin.com/in/christian-deacon-902042186/) - Creator
+* [Blueberry](https://github.com/Blueberryy) - Russian translation file.
