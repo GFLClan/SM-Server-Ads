@@ -12,20 +12,19 @@
 #define UPDATE_URL "http://updater.gflclan.com/GFL-ServerAds.txt"
 #define PL_VERSION "1.0.1"
 
-// ENUM's aren't supported with the new syntax. Therefore, we need to stay on the old syntax until the SourceMod Developers find a better method.
-enum ServerAds
+enum struct ServerAds
 {
-	iID,
-	String:sMsg[1024],
-	iGameID,
-	iServerID,
-	iPaid,
-	iUID,
-	iCustom,
-	iChatType
+	int iID;
+	char sMsg[1024];
+	int iGameID;
+	int iServerID;
+	int iPaid;
+	int iUID;
+	int iCustom;
+	int iChatType;
 }
 
-int g_arrServerAds[MAXADS][ServerAds];
+ServerAds g_arrServerAds[MAXADS];
 
 // Forwards
 Handle g_hOnDefaultAd;
@@ -345,9 +344,9 @@ public void UpdateAdverts()
 		{
 			KvGetSectionName(hKV, sSectionName, sizeof(sSectionName));
 			
-			g_arrServerAds[g_iAdCount][iID] = StringToInt(sSectionName);
-			g_arrServerAds[g_iAdCount][iChatType] = KvGetNum(hKV, "chat-type");
-			KvGetString(hKV, "message", g_arrServerAds[g_iAdCount][sMsg], 1024);
+			g_arrServerAds[g_iAdCount].iID = StringToInt(sSectionName);
+			g_arrServerAds[g_iAdCount].iChatType = KvGetNum(hKV, "chat-type");
+			KvGetString(hKV, "message", g_arrServerAds[g_iAdCount].sMsg, 1024);
 		
 			g_iAdCount++;
 		} while (KvGotoNextKey(hKV));		
@@ -363,15 +362,15 @@ public void AdvertsDefaultCallback(Handle hOwner, Handle hHndl, const char[] sEr
 	{	
 		while (SQL_FetchRow(hHndl))
 		{
-			g_arrServerAds[g_iAdCount][iID] = SQL_FetchInt(hHndl, 0);
-			SQL_FetchString(hHndl, 1, g_arrServerAds[g_iAdCount][sMsg], 1024);
-			g_arrServerAds[g_iAdCount][iGameID] = SQL_FetchInt(hHndl, 2);
-			g_arrServerAds[g_iAdCount][iServerID] = SQL_FetchInt(hHndl, 3);
-			g_arrServerAds[g_iAdCount][iChatType] = SQL_FetchInt(hHndl, 4);
+			g_arrServerAds[g_iAdCount].iID = SQL_FetchInt(hHndl, 0);
+			SQL_FetchString(hHndl, 1, g_arrServerAds[g_iAdCount].sMsg, 1024);
+			g_arrServerAds[g_iAdCount].iGameID = SQL_FetchInt(hHndl, 2);
+			g_arrServerAds[g_iAdCount].iServerID = SQL_FetchInt(hHndl, 3);
+			g_arrServerAds[g_iAdCount].iChatType = SQL_FetchInt(hHndl, 4);
 			
 			if (g_bAdvanceDebug)
 			{
-				GFLCore_LogMessage("", "[GFL-ServerAds] AdvertsDefaultCallback() :: Added advertisement (ID: %i, Game ID: %i, Msg: \"%s\")", g_arrServerAds[g_iAdCount][iID], g_arrServerAds[g_iAdCount][iGameID], g_arrServerAds[g_iAdCount][sMsg]);
+				GFLCore_LogMessage("", "[GFL-ServerAds] AdvertsDefaultCallback() :: Added advertisement (ID: %i, Game ID: %i, Msg: \"%s\")", g_arrServerAds[g_iAdCount].iID, g_arrServerAds[g_iAdCount].iGameID, g_arrServerAds[g_iAdCount].sMsg);
 			}
 			
 			g_iAdCount++;
@@ -385,16 +384,16 @@ public void AdvertsPaidCallback(Handle hOwner, Handle hHndl, const char[] sErr, 
 	{	
 		while (SQL_FetchRow(hHndl))
 		{
-			g_arrServerAds[g_iAdCount][iID] = SQL_FetchInt(hHndl, 0);
-			g_arrServerAds[g_iAdCount][iUID] = SQL_FetchInt(hHndl, 2);
-			SQL_FetchString(hHndl, 4, g_arrServerAds[g_iAdCount][sMsg], 1024);
-			g_arrServerAds[g_iAdCount][iChatType] = SQL_FetchInt(hHndl, 5);
+			g_arrServerAds[g_iAdCount].iID = SQL_FetchInt(hHndl, 0);
+			g_arrServerAds[g_iAdCount].iUID = SQL_FetchInt(hHndl, 2);
+			SQL_FetchString(hHndl, 4, g_arrServerAds[g_iAdCount].sMsg, 1024);
+			g_arrServerAds[g_iAdCount].iChatType = SQL_FetchInt(hHndl, 5);
 			
-			g_arrServerAds[g_iAdCount][iPaid] = 1;
+			g_arrServerAds[g_iAdCount].iPaid = 1;
 			
 			if (g_bAdvanceDebug)
 			{
-				GFLCore_LogMessage("", "[GFL-ServerAds] AdvertsPaidCallback() :: Added advertisement (ID: %i, Msg: \"%s\")", g_arrServerAds[g_iAdCount][iID], g_arrServerAds[g_iAdCount][sMsg]);
+				GFLCore_LogMessage("", "[GFL-ServerAds] AdvertsPaidCallback() :: Added advertisement (ID: %i, Msg: \"%s\")", g_arrServerAds[g_iAdCount].iID, g_arrServerAds[g_iAdCount].sMsg);
 			}
 			
 			g_iAdCount++;
@@ -420,7 +419,7 @@ public Action DisplayAdvert(Handle hTimer)
 	}
 	
 	// Display the correct advert!
-	if (!StrEqual(g_arrServerAds[g_iCurAd][sMsg], ""))
+	if (!StrEqual(g_arrServerAds[g_iCurAd].sMsg, ""))
 	{
 		if (g_bAdvanceDebug)
 		{
@@ -429,9 +428,9 @@ public Action DisplayAdvert(Handle hTimer)
 		
 		char sFormattedMsg[1024];
 		
-		if (g_arrServerAds[g_iCurAd][iPaid] == 1)
+		if (g_arrServerAds[g_iCurAd].iPaid == 1)
 		{
-			Format(sFormattedMsg, sizeof(sFormattedMsg), "%t%t", "ChatPrefix", "PaidAd", g_arrServerAds[g_iCurAd][sMsg]);
+			Format(sFormattedMsg, sizeof(sFormattedMsg), "%t%t", "ChatPrefix", "PaidAd", g_arrServerAds[g_iCurAd].sMsg);
 			
 			for (int iClient = 1; iClient <= MaxClients; iClient++)
 			{
@@ -440,15 +439,15 @@ public Action DisplayAdvert(Handle hTimer)
 					continue;
 				}
 				
-				if (g_arrServerAds[g_iCurAd][iChatType] == 1)
+				if (g_arrServerAds[g_iCurAd].iChatType == 1)
 				{
 					CPrintToChat(iClient, sFormattedMsg);
 				}
-				else if (g_arrServerAds[g_iCurAd][iChatType] == 2)
+				else if (g_arrServerAds[g_iCurAd].iChatType == 2)
 				{
 					PrintCenterText(iClient, sFormattedMsg);
 				}		
-				else if (g_arrServerAds[g_iCurAd][iChatType] == 3)
+				else if (g_arrServerAds[g_iCurAd].iChatType == 3)
 				{
 					PrintHintText(iClient, sFormattedMsg);
 				}
@@ -460,7 +459,7 @@ public Action DisplayAdvert(Handle hTimer)
 		}
 		else
 		{
-			Format(sFormattedMsg, sizeof(sFormattedMsg), "%t%s", "ChatPrefix", g_arrServerAds[g_iCurAd][sMsg]);
+			Format(sFormattedMsg, sizeof(sFormattedMsg), "%t%s", "ChatPrefix", g_arrServerAds[g_iCurAd].sMsg);
 			
 			for (int iClient = 1; iClient <= MaxClients; iClient++)
 			{
@@ -469,15 +468,15 @@ public Action DisplayAdvert(Handle hTimer)
 					continue;
 				}
 				
-				if (g_arrServerAds[g_iCurAd][iChatType] == 1)
+				if (g_arrServerAds[g_iCurAd].iChatType == 1)
 				{
 					CPrintToChat(iClient, sFormattedMsg);
 				}
-				else if (g_arrServerAds[g_iCurAd][iChatType] == 2)
+				else if (g_arrServerAds[g_iCurAd].iChatType == 2)
 				{
 					PrintCenterText(iClient, sFormattedMsg);
 				}		
-				else if (g_arrServerAds[g_iCurAd][iChatType] == 3)
+				else if (g_arrServerAds[g_iCurAd].iChatType == 3)
 				{
 					PrintHintText(iClient, sFormattedMsg);
 				}
@@ -535,7 +534,7 @@ public Action Command_PrintAds(int iClient, int iArgs)
 	for (int i = 0; i < g_iAdCount; i++)
 	{
 		// Check if the ad is valid.
-		if (StrEqual(g_arrServerAds[i][sMsg], ""))
+		if (StrEqual(g_arrServerAds[i].sMsg, ""))
 		{
 			continue;
 		}
@@ -543,17 +542,17 @@ public Action Command_PrintAds(int iClient, int iArgs)
 		char sFormattedMsg[1024];
 		
 		// Check ad type.
-		if (g_arrServerAds[i][iPaid] == 1)
+		if (g_arrServerAds[i].iPaid == 1)
 		{
 			// Paid ad.
-			Format(sFormattedMsg, sizeof(sFormattedMsg), "[%i] %t%t", g_arrServerAds[i][iID], "ChatPrefix", "PaidAd", g_arrServerAds[i][sMsg]);
+			Format(sFormattedMsg, sizeof(sFormattedMsg), "[%i] %t%t", g_arrServerAds[i].iID, "ChatPrefix", "PaidAd", g_arrServerAds[i].sMsg);
 			
 			CPrintToChat(iClient, sFormattedMsg);
 		}
 		else
 		{
 			// Default/Game ad.
-			Format(sFormattedMsg, sizeof(sFormattedMsg), "[%i] %t%s", g_arrServerAds[i][iID], "ChatPrefix", g_arrServerAds[i][sMsg]);
+			Format(sFormattedMsg, sizeof(sFormattedMsg), "[%i] %t%s", g_arrServerAds[i].iID, "ChatPrefix", g_arrServerAds[i].sMsg);
 			
 			CPrintToChat(iClient, sFormattedMsg);
 		}
@@ -566,14 +565,14 @@ stock void ClearServerAdsArray()
 {
 	for (int i = 0; i < MAXADS; i++)
 	{
-		g_arrServerAds[i][iID] = -1;
-		strcopy(g_arrServerAds[i][sMsg], 1024, "");
-		g_arrServerAds[i][iGameID] = -1;
-		g_arrServerAds[i][iServerID] = -1;
-		g_arrServerAds[i][iPaid] = -1;
-		g_arrServerAds[i][iUID] = -1;
-		g_arrServerAds[i][iCustom] = -1;
-		g_arrServerAds[i][iChatType] = -1;
+		g_arrServerAds[i].iID = -1;
+		strcopy(g_arrServerAds[i].sMsg, 1024, "");
+		g_arrServerAds[i].iGameID = -1;
+		g_arrServerAds[i].iServerID = -1;
+		g_arrServerAds[i].iPaid = -1;
+		g_arrServerAds[i].iUID = -1;
+		g_arrServerAds[i].iCustom = -1;
+		g_arrServerAds[i].iChatType = -1;
 	}
 }
 
@@ -581,19 +580,19 @@ stock void PrintServerAdsArray()
 {
 	for (int i = 0; i < g_iAdCount; i++)
 	{
-		if (StrEqual(g_arrServerAds[i][sMsg], ""))
+		if (StrEqual(g_arrServerAds[i].sMsg, ""))
 		{
 			continue;
 		}
 		
 		PrintToServer("#%i:", i);
 		PrintToServer("---------------------------");
-		PrintToServer("Message: %s", g_arrServerAds[i][sMsg]);
-		PrintToServer("Chat Type: %i", g_arrServerAds[i][iChatType]);
-		PrintToServer("Game ID: %i", g_arrServerAds[i][iGameID]);
-		PrintToServer("Server ID: %i", g_arrServerAds[i][iServerID]);
-		PrintToServer("Paid: %i", g_arrServerAds[i][iPaid]);
-		PrintToServer("Custom: %i", g_arrServerAds[i][iCustom]);
+		PrintToServer("Message: %s", g_arrServerAds[i].sMsg);
+		PrintToServer("Chat Type: %i", g_arrServerAds[i].iChatType);
+		PrintToServer("Game ID: %i", g_arrServerAds[i].iGameID);
+		PrintToServer("Server ID: %i", g_arrServerAds[i].iServerID);
+		PrintToServer("Paid: %i", g_arrServerAds[i].iPaid);
+		PrintToServer("Custom: %i", g_arrServerAds[i].iCustom);
 		PrintToServer("---------------------------");
 	}
 }
