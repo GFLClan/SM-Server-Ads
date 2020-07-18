@@ -1,0 +1,22 @@
+{
+    "version": "2.0.0",
+
+    "options":
+    {
+        "env":
+        {
+            "sm_path": "/home/dev/GFL/SourceMod/scripting",
+            "gflcore_path": "/home/dev/GFL/SourceMod/GFL-Core/scripting",
+            "gflmysql_path": "/home/dev/GFL/SourceMod/GFL-MySQL/scripting"
+        }
+    },
+
+    "tasks":
+    [
+        {
+            "label": "sourcepawn",
+            "type": "shell",
+            "command": "$sm_path/spcomp64 ${file} -D ${workspaceFolder} -i ${workspaceFolder}/scripting/include -i $sm_path/include -i $gflcore_path/include -i $gflmysql_path/include"
+        }
+    ]
+}
