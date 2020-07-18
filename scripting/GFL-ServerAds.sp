@@ -267,6 +267,8 @@ public int GFLMySQL_OnDatabaseConnected(Handle hDB)
 		// Create a retry timer.
 		CreateTimer(30.0, Timer_Reconnect, _, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
 	}
+
+	return 0;
 }
 
 public int GFLMySQL_OnDatabaseDown()
@@ -289,6 +291,8 @@ public int GFLMySQL_OnDatabaseDown()
 	
 	// Create a retry timer.
 	CreateTimer(30.0, Timer_Reconnect, _, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
+
+	return 0;
 }
 
 public Action Timer_Reconnect(Handle hTimer)
