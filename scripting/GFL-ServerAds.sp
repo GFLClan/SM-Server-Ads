@@ -2,11 +2,11 @@
 #include <sdktools>
 #include <multicolors>
 #include <GFL-Core>
-#include <GFL-MySQL>
 #include <GFL-ServerAds>
 
 #undef REQUIRE_PLUGIN
 #include <updater>
+#include <GFL-MySQL>
 
 #define MAXADS 128
 #define UPDATE_URL "http://updater.gflclan.com/GFL-ServerAds.txt"
@@ -52,7 +52,7 @@ bool g_bCreateDBTable;
 
 // Other
 Handle g_hDB = null;
-bool g_bEnabled = false;
+bool g_bSQLEnabled = false;
 int g_iCurAd = 0;
 int g_iAdCount = 0;
 Handle g_hAdvertTimer = null;
@@ -223,13 +223,13 @@ public int GFLMySQL_OnDatabaseConnected(Handle hDB)
 		GFLCore_LogMessage("serverads-debug.log", "[GFL-ServerAds] GFLMySQL_OnDatabaseConnected() :: Executed...");
 	}
 	
-	// Set g_bEnabled to false just in case.
-	g_bEnabled = false;
+	// Set g_bSQLEnabled to false just in case.
+	g_bSQLEnabled = false;
 	
 	if (hDB != null && g_bCVarsLoaded)
 	{
 		g_hDB = hDB;
-		g_bEnabled = true;
+		g_bSQLEnabled = true;
 		
 		if (g_bCreateDBTable)
 		{
@@ -247,7 +247,7 @@ public int GFLMySQL_OnDatabaseConnected(Handle hDB)
 	}
 	else
 	{
-		g_bEnabled = false;
+		g_bSQLEnabled = false;
 		
 		// Create a retry timer.
 		CreateTimer(30.0, Timer_Reconnect, _, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
@@ -257,7 +257,7 @@ public int GFLMySQL_OnDatabaseConnected(Handle hDB)
 public int GFLMySQL_OnDatabaseDown()
 {
 	GFLCore_LogMessage("", "[GFL-ServerAds] GFLMySQL_OnDatabaseDown() :: Executed...");
-	g_bEnabled = false;
+	g_bSQLEnabled = false;
 	
 	if (g_hAdvertTimer != null)
 	{
@@ -294,41 +294,34 @@ public void UpdateAdverts()
 	{
 		GFLCore_LogMessage("", "[GFL-ServerAds] UpdateAdverts() :: Executed.");
 	}
-
-	if (!g_bEnabled)
-	{
-		if (g_bAdvanceDebug)
-		{
-			GFLCore_LogMessage("", "[GFL-ServerAds] UpdateAdverts() :: Database down. Aborting...");
-		}
-		
-		return;
-	}
 	
 	if (g_hDB == null)
 	{		
-		GFLCore_LogMessage("", "[GFL-ServerAds] UpdateAdverts() :: Error: Database handle is invalid.");
-		return;
+		GFLCore_LogMessage("", "[GFL-ServerAds] UpdateAdverts() :: Database handle is not valid. Therefore, MySQL-related advertisements will not be loaded.");
 	}
 	
 	// Clear the advertisements.
 	ClearServerAdsArray();
 	g_iAdCount = 0;
 	
-	// Global Advertisements.
-	char sQuery[256];
-	Format(sQuery, sizeof(sQuery), "SELECT * FROM `%s` WHERE `gameid`=0", g_sGlobalTableName);
-	SQL_TQuery(g_hDB, AdvertsDefaultCallback, sQuery, _, dbPriority);
-	
-	// Paid Advertisements.
-	char sQuery2[256];
-	Format(sQuery2, sizeof(sQuery2), "SELECT * FROM `%s` WHERE `activated`=1", g_sPaidTableName);
-	SQL_TQuery(g_hDB, AdvertsPaidCallback, sQuery2, _, dbPriority);
-	
-	// Global Game Advertisements.
-	char sQuery3[256];
-	Format(sQuery3, sizeof(sQuery3), "SELECT * FROM `%s` WHERE `gameid`=%d", g_sGlobalTableName, g_iGameID);
-	SQL_TQuery(g_hDB, AdvertsDefaultCallback, sQuery3, _, dbPriority);
+	// Check if MySQL is up first.
+	if (g_bSQLEnabled)
+	{
+		// Global Advertisements.
+		char sQuery[256];
+		Format(sQuery, sizeof(sQuery), "SELECT * FROM `%s` WHERE `gameid`=0", g_sGlobalTableName);
+		SQL_TQuery(g_hDB, AdvertsDefaultCallback, sQuery, _, dbPriority);
+		
+		// Paid Advertisements.
+		char sQuery2[256];
+		Format(sQuery2, sizeof(sQuery2), "SELECT * FROM `%s` WHERE `activated`=1", g_sPaidTableName);
+		SQL_TQuery(g_hDB, AdvertsPaidCallback, sQuery2, _, dbPriority);
+		
+		// Global Game Advertisements.
+		char sQuery3[256];
+		Format(sQuery3, sizeof(sQuery3), "SELECT * FROM `%s` WHERE `gameid`=%d", g_sGlobalTableName, g_iGameID);
+		SQL_TQuery(g_hDB, AdvertsDefaultCallback, sQuery3, _, dbPriority);
+	}
 	
 	// Custom Advertisements
 	char sPath[PLATFORM_MAX_PATH];
@@ -340,7 +333,7 @@ public void UpdateAdverts()
 	{	
 		char sSectionName[11];
 		
-		do 
+		do
 		{
 			KvGetSectionName(hKV, sSectionName, sizeof(sSectionName));
 			
@@ -349,11 +342,12 @@ public void UpdateAdverts()
 			KvGetString(hKV, "message", g_arrServerAds[g_iAdCount].sMsg, 1024);
 		
 			g_iAdCount++;
-		} while (KvGotoNextKey(hKV));		
+		} 
+		while (KvGotoNextKey(hKV));
+
 		KvRewind(hKV);
 		KvGotoFirstSubKey(hKV)
 	}
-	
 }
 
 public void AdvertsDefaultCallback(Handle hOwner, Handle hHndl, const char[] sErr, any data)
@@ -406,16 +400,6 @@ public Action DisplayAdvert(Handle hTimer)
 	if (g_bAdvanceDebug)
 	{
 		GFLCore_LogMessage("serverads-debug.log", "[GFL-ServerAds] DisplayAdvert() :: Executed.");
-	}
-	
-	if (!g_bEnabled)
-	{
-		if (g_bAdvanceDebug)
-		{
-			GFLCore_LogMessage("serverads-debug.log", "[GFL-ServerAds] DisplayAdvert() :: Plugin Disabled.");
-		}
-		
-		return Plugin_Stop;
 	}
 	
 	// Display the correct advert!
@@ -507,14 +491,7 @@ public void OnMapEnd()
 }
 
 public Action Command_UpdateAds(int iClient, int iArgs)
-{
-	if (!g_bEnabled)
-	{
-		CReplyToCommand(iClient, "%t%t", "Tag", "PluginDisabled");
-		
-		return Plugin_Handled;
-	}
-	
+{	
 	UpdateAdverts();
 	
 	CReplyToCommand(iClient, "%t%t", "Tag", "ServerAdsUpdated");
