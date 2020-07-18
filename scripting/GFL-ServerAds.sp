@@ -57,6 +57,7 @@ int g_iCurAd = 0;
 int g_iAdCount = 0;
 Handle g_hAdvertTimer = null;
 bool g_bCVarsLoaded = false;
+bool g_bIsMySQLLoaded = false;
 
 DBPriority dbPriority = DBPrio_Low;
 
@@ -73,6 +74,12 @@ public void OnLibraryAdded(const char[] sLName)
 	{
 		Updater_AddPlugin(UPDATE_URL);
 	}
+
+	if (StrEqual(sLName, "GFL-MySQL"))
+	{
+		g_bIsMySQLLoaded = true;
+	}
+
 }
 
 public Plugin myinfo = 
@@ -218,6 +225,11 @@ stock void ForwardValues()
 
 public int GFLMySQL_OnDatabaseConnected(Handle hDB)
 {
+	if (!g_bIsMySQLLoaded)
+	{
+		return 1;
+	}
+
 	if (g_bAdvanceDebug)
 	{
 		GFLCore_LogMessage("serverads-debug.log", "[GFL-ServerAds] GFLMySQL_OnDatabaseConnected() :: Executed...");
@@ -256,6 +268,11 @@ public int GFLMySQL_OnDatabaseConnected(Handle hDB)
 
 public int GFLMySQL_OnDatabaseDown()
 {
+	if (!g_bIsMySQLLoaded)
+	{
+		return 1;
+	}
+
 	GFLCore_LogMessage("", "[GFL-ServerAds] GFLMySQL_OnDatabaseDown() :: Executed...");
 	g_bSQLEnabled = false;
 	
@@ -273,6 +290,11 @@ public int GFLMySQL_OnDatabaseDown()
 
 public Action Timer_Reconnect(Handle hTimer)
 {
+	if (!g_bIsMySQLLoaded)
+	{
+		return Plugin_Continue;
+	}
+
 	// Let's try to grab the database.
 	Handle hDB = GFLMySQL_GetDatabase();
 	
