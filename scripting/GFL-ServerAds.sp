@@ -64,6 +64,9 @@ DBPriority dbPriority = DBPrio_Low;
 public APLRes AskPluginLoad2(Handle hMyself, bool bLate, char[] sErr, int iErrMax) 
 {
 	RegPluginLibrary("GFL-ServerAds");
+
+	MarkNativeAsOptional("GFLMySQL_GetDatabase");
+	MarkNativeAsOptional("GFLMySQL_LogMessage");
 	
 	return APLRes_Success;
 }
